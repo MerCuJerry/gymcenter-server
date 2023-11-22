@@ -1,7 +1,9 @@
-use crate::utils::{Response, ResponseData, DeleteForm};
+use crate::utils::{Admin, Coach, User};
+use crate::utils::{DeleteForm, Response, ResponseData};
 use rocket::{
     form::Form,
     serde::{json::Json, Serialize},
+    State,
 };
 use sqlx::{MySql, Pool};
 
@@ -11,11 +13,28 @@ pub struct CourseAddForm<'r> {
     course_discribe: &'r str,
     coach_id: i32,
 }
+//管理员添加课程
 #[post("/course/add", data = "<form>")]
-pub async fn course_add(
-    pool: &rocket::State<Pool<MySql>>,
+pub async fn course_add_admin(
+    _admin: Admin,
+    pool: &State<Pool<MySql>>,
     form: Form<CourseAddForm<'_>>,
 ) -> Json<Response> {
+    course_add(form, pool).await
+}
+//教练添加课程
+#[post("/course/add", rank = 2, data = "<form>")]
+pub async fn course_add_coach(
+    coach: Coach,
+    pool: &State<Pool<MySql>>,
+    form: Form<CourseAddForm<'_>>,
+) -> Json<Response> {
+    let mut changed_form = form;
+    changed_form.coach_id = coach.get_id();
+    course_add(changed_form, pool).await
+}
+
+async fn course_add(form: Form<CourseAddForm<'_>>, pool: &State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let res = sqlx::query!(
@@ -30,7 +49,7 @@ pub async fn course_add(
     match res {
         Ok(_result) => {
             resp_str = "failed";
-            resp_args = "account already exist";
+            resp_args = "course already exist";
         }
         Err(_err) => {
             let conn = connection.as_mut();
@@ -49,7 +68,7 @@ pub async fn course_add(
                 }
                 Err(_err) => {
                     resp_str = "failed";
-                    resp_args = "Wrong account or password";
+                    resp_args = "Wrong while add course";
                 }
             }
         }
@@ -61,24 +80,61 @@ pub async fn course_add(
     ))
 }
 
+//管理员删除课程
 #[post("/course/delete", data = "<form>")]
-pub async fn course_delete(pool: &rocket::State<Pool<MySql>>, form: Form<DeleteForm>,) -> Json<Response> {
+pub async fn course_delete_admin(
+    _admin: Admin,
+    pool: &State<Pool<MySql>>,
+    form: Form<DeleteForm>,
+) -> Json<Response> {
+    course_delete(pool, form, None).await
+}
+//教练删除课程
+#[post("/course/delete", rank = 2, data = "<form>")]
+pub async fn course_delete_coach(
+    coach: Coach,
+    pool: &State<Pool<MySql>>,
+    form: Form<DeleteForm>,
+) -> Json<Response> {
+    course_delete(pool, form, Some(coach.get_id())).await
+}
+async fn course_delete(
+    pool: &State<Pool<MySql>>,
+    form: Form<DeleteForm>,
+    coach_id: Option<i32>,
+) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
-    let row = sqlx::query!("DELETE FROM course WHERE id = ?", form.id)
+    let ok: bool;
+    if let Some(id) = coach_id {
+        let row = sqlx::query!(
+            "DELETE FROM course WHERE id = ? AND coach_id = ?",
+            form.id,
+            id
+        )
         .execute(conn)
         .await;
+        match row {
+            Ok(_result) => ok = true,
+            Err(_err) => ok = false,
+        }
+    } else {
+        let row = sqlx::query!("DELETE FROM course WHERE id = ?", form.id)
+            .execute(conn)
+            .await;
+        match row {
+            Ok(_result) => ok = true,
+            Err(_err) => ok = false,
+        }
+    }
     let resp_str: &str;
     let resp_args: &str;
-    match row {
-        Ok(_result) => {
-            resp_str = "success";
-            resp_args = "some";
-        }
-        Err(_err) => {
-            resp_str = "failed";
-            resp_args = "Wrong while delete course";
-        }
+    if ok {
+        resp_str = "success";
+        resp_args = "some";
+    } else {
+        resp_str = "failed";
+        resp_args = "Wrong while delete course";
     }
     connection.detach();
     Json(Response::new(
@@ -96,25 +152,15 @@ pub struct Course {
     coach_id: i32,
 }
 #[get("/course/query")]
-pub async fn course_query(pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
+pub async fn course_query(_user: User, pool: &State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
-    let row = sqlx::query!("SELECT * FROM course").fetch_all(conn).await;
+    let row = sqlx::query_as!(Course, "SELECT * FROM course")
+        .fetch_all(conn)
+        .await;
     let response: Response;
-    let course_vec: Vec<Course>;
     match row {
-        Ok(_result) => {
-            course_vec = _result
-                .iter()
-                .map(|x| Course {
-                    id: x.id,
-                    course_name: x.course_name.clone(),
-                    course_discribe: x.course_discribe.clone(),
-                    coach_id: x.coach_id.clone(),
-                })
-                .collect();
-            response = Response::new("success", ResponseData::Course(course_vec))
-        }
+        Ok(result) => response = Response::new("success", ResponseData::Course(result)),
         Err(_err) => {
             response = Response::new("Failed", ResponseData::String("Failed".to_string()));
         }
@@ -130,8 +176,30 @@ pub struct CourseChangeForm<'r> {
     course_discribe: &'r str,
     coach_id: i32,
 }
+//管理员更改课程
 #[post("/course/change", data = "<form>")]
-pub async fn course_change(pool: &rocket::State<Pool<MySql>>, form: Form<CourseChangeForm<'_>>,) -> Json<Response> {
+pub async fn course_change_admin(
+    _admin: Admin,
+    pool: &State<Pool<MySql>>,
+    form: Form<CourseChangeForm<'_>>,
+) -> Json<Response> {
+    course_change(pool, form).await
+}
+//教练更改课程
+#[post("/course/change", rank = 2, data = "<form>")]
+pub async fn course_change_coach(
+    coach: Coach,
+    pool: &State<Pool<MySql>>,
+    form: Form<CourseChangeForm<'_>>,
+) -> Json<Response> {
+    let mut changed_form = form;
+    changed_form.coach_id = coach.get_id();
+    course_change(pool, changed_form).await
+}
+async fn course_change(
+    pool: &State<Pool<MySql>>,
+    form: Form<CourseChangeForm<'_>>,
+) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let row = sqlx::query!(

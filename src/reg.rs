@@ -1,5 +1,10 @@
+use crate::utils::User;
 use crate::utils::{Response, ResponseData};
-use rocket::{form::Form, serde::json::Json};
+use rocket::{
+    form::Form,
+    http::{Cookie, CookieJar},
+    serde::json::Json,
+};
 use sqlx::{MySql, Pool};
 
 #[derive(FromForm)]
@@ -8,47 +13,45 @@ pub struct LoginForm<'r> {
     password: &'r str,
 }
 #[post("/login", data = "<form>")]
-pub async fn login(pool: &rocket::State<Pool<MySql>>, form: Form<LoginForm<'_>>) -> Json<Response> {
+pub async fn login(
+    cookies: &CookieJar<'_>,
+    pool: &rocket::State<Pool<MySql>>,
+    form: Form<LoginForm<'_>>,
+) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let row = sqlx::query!(
-        "select * from user where phone_num = ? and password = ?",
+        "SELECT * FROM user WHERE phone_num = ? and password = ?",
         form.phone_num,
         form.password
     )
-    .fetch_all(conn)
+    .fetch_one(conn)
     .await;
     let resp_str: &str;
-    let resp_args: &str;
+    let resp_args: String;
     match row {
-        Ok(_result) => {
+        Ok(result) => {
             resp_str = "success";
-            resp_args = "some";
+            cookies.add_private(Cookie::new("user_id", result.id.to_string()));
+            cookies.add_private(Cookie::new("token", result.password.to_string()));
+            resp_args = "placeholder".to_string();
         }
         Err(_err) => {
             resp_str = "failed";
-            resp_args = "Wrong account or password";
+            resp_args = "Wrong account or password".to_string();
         }
     }
     connection.detach();
-    Json(Response::new(
-        resp_str,
-        ResponseData::String(resp_args.to_string()),
-    ))
+    Json(Response::new(resp_str, ResponseData::String(resp_args)))
 }
 
-#[derive(FromForm)]
-pub struct LogoutForm<'r> {
-    placeholder: &'r str,
-}
-#[post("/logout", data = "<form>")]
+#[get("/logout")]
 pub async fn logout(
-    pool: &rocket::State<Pool<MySql>>,
-    form: Form<LogoutForm<'_>>,
+    _user: User,
+    cookies: &CookieJar<'_>,
 ) -> Json<Response> {
-    let connection = pool.acquire().await.expect("Failed to acquire connection");
-    connection.detach();
-    form.placeholder;
+    cookies.remove_private("user_id");
+    cookies.remove_private("token");
     Json(Response::new(
         "success",
         ResponseData::String("some".to_string()),
@@ -90,7 +93,7 @@ pub async fn register(
             match row {
                 Ok(_result) => {
                     resp_str = "success";
-                    resp_args = "some";
+                    resp_args = "Register Success";
                 }
                 Err(_err) => {
                     resp_str = "failed";

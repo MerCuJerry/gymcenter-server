@@ -9,5 +9,5 @@ TODO
 
 - [x] 写完基本API
 - [ ] 完善整个服务器
-- [ ] API鉴权
+- [x] API鉴权
 - [ ] 重写README

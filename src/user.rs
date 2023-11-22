@@ -1,5 +1,5 @@
-use crate::utils::{Response, ResponseData, DeleteForm};
-use rocket::{form::Form, serde::{json::Json, Serialize}};
+use crate::utils::{Admin, DeleteForm, Response, ResponseData, User};
+use rocket::{form::Form, serde::json::Json};
 use sqlx::{MySql, Pool};
 
 //用户相关
@@ -10,6 +10,7 @@ pub struct UserAddForm<'r> {
 }
 #[post("/user/add", data = "<form>")]
 pub async fn user_add(
+    _admin: Admin,
     pool: &rocket::State<Pool<MySql>>,
     form: Form<UserAddForm<'_>>,
 ) -> Json<Response> {
@@ -56,6 +57,7 @@ pub async fn user_add(
 
 #[post("/user/delete", data = "<form>")]
 pub async fn user_delete(
+    _admin: Admin,
     pool: &rocket::State<Pool<MySql>>,
     form: Form<DeleteForm>,
 ) -> Json<Response> {
@@ -83,38 +85,17 @@ pub async fn user_delete(
     ))
 }
 
-#[derive(Serialize)]
-#[serde(crate = "rocket::serde")]
-pub struct User {
-    id: i32,
-    username: Option<String>,
-    password: String,
-    phone_num: String,
-    permission: String,
-    self_sign: Option<String>,
-}
-#[get("/user/query")]
-pub async fn user_query(pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
+// 用户
+#[post("/user/query")]
+pub async fn user_query(_admin: Admin, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
-    let row = sqlx::query!("SELECT * FROM user").fetch_all(conn).await;
+    let row = sqlx::query_as!(User, "SELECT * FROM user")
+        .fetch_all(conn)
+        .await;
     let response: Response;
-    let user_vec: Vec<User>;
     match row {
-        Ok(_result) => {
-            user_vec = _result
-                .iter()
-                .map(|x| User {
-                    id: x.id,
-                    username: x.username.clone(),
-                    password: x.password.clone(),
-                    phone_num: x.phone_num.clone(),
-                    permission: x.permission.clone(),
-                    self_sign: x.self_sign.clone(),
-                })
-                .collect();
-            response = Response::new("success", ResponseData::User(user_vec))
-        }
+        Ok(result) => response = Response::new("success", ResponseData::User(result)),
         Err(_err) => {
             response = Response::new("Failed", ResponseData::String("Failed".to_string()));
         }
@@ -133,6 +114,7 @@ pub struct UserChangeForm<'r> {
 }
 #[post("/user/change", data = "<form>")]
 pub async fn user_change(
+    _admin: Admin,
     pool: &rocket::State<Pool<MySql>>,
     form: Form<UserChangeForm<'_>>,
 ) -> Json<Response> {
