@@ -12,55 +12,33 @@ mod reg;
 mod user;
 mod utils;
 
-//
-use crate::reg::login;
-use crate::reg::logout;
-use crate::reg::register;
-//用户增删改查
-use crate::user::user_add;
-use crate::user::user_change;
-use crate::user::user_delete;
-use crate::user::user_query;
-//课程增删改查
-use crate::course::course_add_admin;
-use crate::course::course_add_coach;
-use crate::course::course_change_admin;
-use crate::course::course_change_coach;
-use crate::course::course_delete_admin;
-use crate::course::course_delete_coach;
-use crate::course::course_query;
-//通知增删改查
-use crate::notice::notice_add;
-use crate::notice::notice_delete;
-use crate::notice::notice_query;
-//
-use crate::depend::depend_add;
-use crate::depend::depend_delete;
-use crate::depend::depend_query;
-//主函数
 #[rocket::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let _routes = routes![
-        user_add,
-        user_delete,
-        user_query,
-        user_change,
-        course_add_admin,
-        course_add_coach,
-        course_delete_admin,
-        course_delete_coach,
-        course_change_admin,
-        course_change_coach,
-        course_query,
-        notice_add,
-        notice_delete,
-        notice_query,
-        login,
-        logout,
-        register,
-        depend_add,
-        depend_delete,
-        depend_query,
+        user::user_add_admin,
+        user::user_delete_admin,
+        user::user_query,
+        user::user_change_admin,
+        user::user_change_user,
+        course::course_add_admin,
+        course::course_add_coach,
+        course::course_delete_admin,
+        course::course_delete_coach,
+        course::course_change_admin,
+        course::course_change_coach,
+        course::course_query,
+        notice::notice_add,
+        notice::notice_delete,
+        notice::notice_query,
+        reg::login,
+        reg::logout,
+        reg::register,
+        depend::depend_add_admin,
+        depend::depend_add_user,
+        depend::depend_delete_admin,
+        depend::depend_delete_user,
+        depend::depend_query_admin,
+        depend::depend_query_user,
     ];
     dotenv_override().expect("Error when reading dotenv");
     let connection_str = env::var("DATABASE_URL").expect("Please check .env file");

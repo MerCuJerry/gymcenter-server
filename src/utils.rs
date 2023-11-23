@@ -40,7 +40,6 @@ pub struct DeleteForm {
 }
 
 //检查用户权限
-// 稍等完善
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct User {

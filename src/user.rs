@@ -7,10 +7,17 @@ use sqlx::{MySql, Pool};
 pub struct UserAddForm<'r> {
     phone_num: &'r str,
     password: &'r str,
+    permission: &'r str,
 }
 #[post("/user/add", data = "<form>")]
-pub async fn user_add(
+pub async fn user_add_admin(
     _admin: Admin,
+    pool: &rocket::State<Pool<MySql>>,
+    form: Form<UserAddForm<'_>>,
+) -> Json<Response> {
+    user_add(pool, form).await
+}
+async fn user_add(
     pool: &rocket::State<Pool<MySql>>,
     form: Form<UserAddForm<'_>>,
 ) -> Json<Response> {
@@ -32,7 +39,7 @@ pub async fn user_add(
                 "insert into user (phone_num, password, permission) value (?, ?, ?)",
                 form.phone_num,
                 form.password,
-                "user"
+                form.permission,
             )
             .execute(conn)
             .await;
@@ -56,11 +63,14 @@ pub async fn user_add(
 }
 
 #[post("/user/delete", data = "<form>")]
-pub async fn user_delete(
+pub async fn user_delete_admin(
     _admin: Admin,
     pool: &rocket::State<Pool<MySql>>,
     form: Form<DeleteForm>,
 ) -> Json<Response> {
+    user_delete(pool, form).await
+}
+async fn user_delete(pool: &rocket::State<Pool<MySql>>, form: Form<DeleteForm>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let row = sqlx::query!("DELETE FROM user WHERE id = ?", form.id)
@@ -112,9 +122,28 @@ pub struct UserChangeForm<'r> {
     permission: &'r str,
     self_sign: &'r str,
 }
+//管理员更改用户
 #[post("/user/change", data = "<form>")]
-pub async fn user_change(
+pub async fn user_change_admin(
     _admin: Admin,
+    pool: &rocket::State<Pool<MySql>>,
+    form: Form<UserChangeForm<'_>>,
+) -> Json<Response> {
+    user_change(pool, form).await
+}
+//用户更改用户
+#[post("/user/change",rank = 2, data = "<form>")]
+pub async fn user_change_user(
+    user: User,
+    pool: &rocket::State<Pool<MySql>>,
+    form: Form<UserChangeForm<'_>>,
+) -> Json<Response> {
+    let mut changed_form = form;
+    changed_form.id = user.id;
+    changed_form.permission = user.permission.as_str();
+    user_change(pool, changed_form).await
+}
+async fn user_change(
     pool: &rocket::State<Pool<MySql>>,
     form: Form<UserChangeForm<'_>>,
 ) -> Json<Response> {
