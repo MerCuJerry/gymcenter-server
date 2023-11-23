@@ -1,5 +1,0 @@
-[default]
-address = "0.0.0.0"
-port = 9097
-keep_alive = 5
-limits = { form = "64 kB", json = "1 MiB" }
