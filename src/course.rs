@@ -151,7 +151,7 @@ pub struct Course {
     course_discribe: String,
     coach_id: i32,
 }
-#[get("/course/query")]
+#[post("/course/query")]
 pub async fn course_query(_user: User, pool: &State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();

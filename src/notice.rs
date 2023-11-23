@@ -82,7 +82,7 @@ pub struct Notice {
     id: i32,
     notice_content: String,
 }
-#[get("/notice/query")]
+#[post("/notice/query")]
 pub async fn notice_query(_user: User, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();

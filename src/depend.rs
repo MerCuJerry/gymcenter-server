@@ -133,7 +133,7 @@ pub struct Depend {
     user_id: i32,
 }
 // 管理员查询课程学员
-#[get("/depend/query")]
+#[post("/depend/query")]
 pub async fn depend_query_admin(
     _admin: Admin,
     pool: &rocket::State<Pool<MySql>>,
@@ -141,7 +141,7 @@ pub async fn depend_query_admin(
     depend_query(pool, None).await
 }
 // 用户查询课程学员
-#[get("/depend/query", rank = 2)]
+#[post("/depend/query", rank = 2)]
 pub async fn depend_query_user(user: User, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
     depend_query(pool, Some(user.id)).await
 }

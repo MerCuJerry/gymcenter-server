@@ -651,7 +651,6 @@ name = "gymcenter-server"
 version = "0.1.0"
 dependencies = [
  "dotenvy",
- "panic",
  "rocket",
  "sqlx",
 ]
@@ -1128,12 +1127,6 @@ name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
-
-[[package]]
-name = "panic"
-version = "0.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb2b0dcde63586883e526d78f877dcc086480c46571b7139130e57eb43a8895"
 
 [[package]]
 name = "parking_lot"

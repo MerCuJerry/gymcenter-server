@@ -8,6 +8,5 @@ authors = ["MerCuJerry <mercujerry@gmail.com>"]
 
 [dependencies]
 dotenvy = "0.15.7"
-panic = "0.0.0"
 rocket = { version = "=0.5.0", features = ["json", "secrets"] }
 sqlx = { version = "0.7.2", features = ["runtime-tokio", "mysql"] }
