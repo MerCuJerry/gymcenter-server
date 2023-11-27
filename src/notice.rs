@@ -82,12 +82,12 @@ pub struct Notice {
     id: i32,
     notice_content: String,
 }
-#[post("/notice/query")]
+#[get("/notice/query")]
 pub async fn notice_query(_user: User, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let row = sqlx::query_as!(Notice, "SELECT * FROM notice")
-        .fetch_all(conn)
+        .fetch_one(conn)
         .await;
     let response: Response;
     match row {

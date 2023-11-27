@@ -1,9 +1,9 @@
-use crate::{course::Course, depend::Depend, notice::Notice};
+use crate::notice::Notice;
 use rocket::{
     http::Status,
     outcome::try_outcome,
     request::{FromRequest, Outcome},
-    serde::Serialize,
+    serde::{Serialize, ser::{SerializeStruct, Serializer}},
     Request,
 };
 use sqlx::{MySql, Pool};
@@ -12,15 +12,13 @@ use sqlx::{MySql, Pool};
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
 pub enum ResponseData {
-    User(Vec<User>),
-    Notice(Vec<Notice>),
-    Course(Vec<Course>),
-    Depend(Vec<Depend>),
+    User(User),
+    Users(Vec<User>),
+    Notice(Notice),
+    Courses(Vec<Course>),
     String(String),
 }
 // 返回数据
-#[derive(Serialize)]
-#[serde(crate = "rocket::serde")]
 pub struct Response {
     result: String,
     data: ResponseData,
@@ -31,6 +29,23 @@ impl Response {
             result: String::from(result),
             data,
         }
+    }
+}
+impl Serialize for Response {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("No", 2)?;
+        s.serialize_field("result", &self.result)?;
+        match &self.data {
+            ResponseData::User(arg) =>  s.serialize_field("data", arg)?,
+            ResponseData::Users(arg) =>  s.serialize_field("data", arg)?,
+            ResponseData::Notice(arg) =>  s.serialize_field("data", arg)?,
+            ResponseData::Courses(arg) =>  s.serialize_field("data", arg)?,
+            ResponseData::String(arg) =>  s.serialize_field("data", arg)?,
+        }
+        s.end()
     }
 }
 
@@ -118,4 +133,13 @@ impl<'r> FromRequest<'r> for Admin {
             Outcome::Forward(Status::Unauthorized)
         }
     }
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct Course {
+    pub id: i32,
+    pub course_name: String,
+    pub course_describe: String,
+    pub coach_id: i32,
 }

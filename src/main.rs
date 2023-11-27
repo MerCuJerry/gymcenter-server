@@ -17,7 +17,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let _routes = routes![
         user::user_add_admin,
         user::user_delete_admin,
-        user::user_query,
+        user::user_query_all,
+        user::user_query_one,
         user::user_change_admin,
         user::user_change_user,
         course::course_add_admin,
@@ -27,6 +28,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         course::course_change_admin,
         course::course_change_coach,
         course::course_query,
+        course::course_query_where_coach,
         notice::notice_add,
         notice::notice_delete,
         notice::notice_query,
@@ -37,8 +39,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         depend::depend_add_user,
         depend::depend_delete_admin,
         depend::depend_delete_user,
-        depend::depend_query_admin,
-        depend::depend_query_user,
+        depend::depend_query_course_user,
+        depend::depend_query_coach_user,
+        depend::depend_query_user_coach,
     ];
     dotenv_override().expect("Error when reading dotenv");
     let connection_str = env::var("DATABASE_URL").expect("Please check .env file");

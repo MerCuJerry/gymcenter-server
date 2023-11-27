@@ -20,36 +20,34 @@ pub async fn login(
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
-    let row = sqlx::query!(
+    let row = sqlx::query_as!(
+        User,
         "SELECT * FROM user WHERE phone_num = ? and password = ?",
         form.phone_num,
         form.password
     )
     .fetch_one(conn)
     .await;
-    let resp_str: &str;
-    let resp_args: String;
+    let response: Response;
     match row {
         Ok(result) => {
-            resp_str = "success";
             cookies.add_private(Cookie::new("user_id", result.id.to_string()));
-            cookies.add_private(Cookie::new("token", result.password.to_string()));
-            resp_args = "placeholder".to_string();
+            cookies.add_private(Cookie::new("token", result.password.clone().to_string()));
+            response = Response::new("success", ResponseData::User(result));
         }
         Err(_err) => {
-            resp_str = "failed";
-            resp_args = "Wrong account or password".to_string();
+            response = Response::new(
+                "failed",
+                ResponseData::String("Wrong while login".to_string()),
+            )
         }
     }
     connection.detach();
-    Json(Response::new(resp_str, ResponseData::String(resp_args)))
+    Json(response)
 }
 
 #[get("/logout")]
-pub async fn logout(
-    _user: User,
-    cookies: &CookieJar<'_>,
-) -> Json<Response> {
+pub async fn logout(_user: User, cookies: &CookieJar<'_>) -> Json<Response> {
     cookies.remove_private("user_id");
     cookies.remove_private("token");
     Json(Response::new(

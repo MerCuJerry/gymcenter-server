@@ -8,6 +8,7 @@ pub struct UserAddForm<'r> {
     phone_num: &'r str,
     password: &'r str,
     permission: &'r str,
+    username: &'r str,
 }
 #[post("/user/add", data = "<form>")]
 pub async fn user_add_admin(
@@ -36,10 +37,11 @@ async fn user_add(
         Err(_err) => {
             let conn = connection.as_mut();
             let row = sqlx::query!(
-                "insert into user (phone_num, password, permission) value (?, ?, ?)",
+                "insert into user (phone_num, password, permission, username) value (?, ?, ?, ?)",
                 form.phone_num,
                 form.password,
                 form.permission,
+                form.username,
             )
             .execute(conn)
             .await;
@@ -95,19 +97,42 @@ async fn user_delete(pool: &rocket::State<Pool<MySql>>, form: Form<DeleteForm>) 
     ))
 }
 
-// 用户
-#[post("/user/query")]
-pub async fn user_query(_admin: Admin, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
+// 查询用户
+#[get("/user/query")]
+pub async fn user_query_all(_admin: Admin, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
+    user_query(pool, None).await
+}
+#[get("/user/query/<id>")]
+pub async fn user_query_one(
+    _admin: Admin,
+    pool: &rocket::State<Pool<MySql>>,
+    id: i32,
+) -> Json<Response> {
+    user_query(pool, Some(id)).await
+}
+async fn user_query(pool: &rocket::State<Pool<MySql>>, id: Option<i32>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
-    let conn = connection.as_mut();
-    let row = sqlx::query_as!(User, "SELECT * FROM user")
-        .fetch_all(conn)
-        .await;
+    let conn: &mut sqlx::MySqlConnection = connection.as_mut();
     let response: Response;
-    match row {
-        Ok(result) => response = Response::new("success", ResponseData::User(result)),
-        Err(_err) => {
-            response = Response::new("Failed", ResponseData::String("Failed".to_string()));
+    if let Some(user_id) = id {
+        let row = sqlx::query_as!(User, "SELECT * FROM user WHERE id = ?", user_id)
+            .fetch_one(conn)
+            .await;
+        match row {
+            Ok(result) => response = Response::new("success", ResponseData::User(result)),
+            Err(_err) => {
+                response = Response::new("Failed", ResponseData::String("Failed".to_string()));
+            }
+        }
+    } else {
+        let row = sqlx::query_as!(User, "SELECT * FROM user")
+            .fetch_all(conn)
+            .await;
+        match row {
+            Ok(result) => response = Response::new("success", ResponseData::Users(result)),
+            Err(_err) => {
+                response = Response::new("Failed", ResponseData::String("Failed".to_string()));
+            }
         }
     }
     connection.detach();
@@ -132,7 +157,7 @@ pub async fn user_change_admin(
     user_change(pool, form).await
 }
 //用户更改用户
-#[post("/user/change",rank = 2, data = "<form>")]
+#[post("/user/change", rank = 2, data = "<form>")]
 pub async fn user_change_user(
     user: User,
     pool: &rocket::State<Pool<MySql>>,

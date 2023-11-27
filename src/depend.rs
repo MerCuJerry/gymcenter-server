@@ -1,4 +1,4 @@
-use crate::utils::{Admin, DeleteForm, Response, ResponseData, User};
+use crate::utils::{Admin, Coach, Course, DeleteForm, Response, ResponseData, User};
 use rocket::{
     form::Form,
     serde::{json::Json, Serialize},
@@ -35,24 +35,38 @@ async fn depend_add(
     form: Form<DependAddForm>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
-    let conn = connection.as_mut();
-    let row = sqlx::query!(
-        "insert into depend (course_id, user_id) value (?, ?)",
+    let check = sqlx::query!(
+        "SELECT * FROM depend WHERE course_id = ? AND user_id = ?",
         form.course_id,
         form.user_id,
     )
-    .execute(conn)
+    .fetch_one(connection.as_mut())
     .await;
     let resp_str: &str;
     let resp_args: &str;
-    match row {
+    match check {
         Ok(_result) => {
-            resp_str = "success";
-            resp_args = "some";
-        }
-        Err(_err) => {
             resp_str = "failed";
             resp_args = "failed add Depend";
+        }
+        Err(_err) => {
+            let row = sqlx::query!(
+                "insert into depend (course_id, user_id) value (?, ?)",
+                form.course_id,
+                form.user_id,
+            )
+            .execute(connection.as_mut())
+            .await;
+            match row {
+                Ok(_result) => {
+                    resp_str = "success";
+                    resp_args = "some";
+                }
+                Err(_err) => {
+                    resp_str = "failed";
+                    resp_args = "failed add Depend";
+                }
+            }
         }
     }
     connection.detach();
@@ -63,7 +77,7 @@ async fn depend_add(
 }
 
 // 管理员删除课程学员
-#[post("/Depend/delete", data = "<form>")]
+#[post("/depend/delete", data = "<form>")]
 pub async fn depend_delete_admin(
     _admin: Admin,
     pool: &rocket::State<Pool<MySql>>,
@@ -72,7 +86,7 @@ pub async fn depend_delete_admin(
     depend_delete(pool, form, None).await
 }
 // 用户删除课程学员
-#[post("/Depend/delete", rank = 2, data = "<form>")]
+#[post("/depend/delete", rank = 2, data = "<form>")]
 pub async fn depend_delete_user(
     user: User,
     pool: &rocket::State<Pool<MySql>>,
@@ -90,7 +104,7 @@ async fn depend_delete(
     let ok: bool;
     if let Some(id) = user_id {
         let row = sqlx::query!(
-            "DELETE FROM depend WHERE id = ? AND user_id = ?",
+            "DELETE FROM depend WHERE course_id = ? AND user_id = ?",
             form.id,
             id
         )
@@ -132,42 +146,83 @@ pub struct Depend {
     course_id: i32,
     user_id: i32,
 }
-// 管理员查询课程学员
-#[post("/depend/query")]
-pub async fn depend_query_admin(
-    _admin: Admin,
+// 用户查询课程学员
+#[get("/depend/query/course")]
+pub async fn depend_query_course_user(
+    user: User,
     pool: &rocket::State<Pool<MySql>>,
 ) -> Json<Response> {
-    depend_query(pool, None).await
-}
-// 用户查询课程学员
-#[post("/depend/query", rank = 2)]
-pub async fn depend_query_user(user: User, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
-    depend_query(pool, Some(user.id)).await
-}
-async fn depend_query(pool: &rocket::State<Pool<MySql>>, id: Option<i32>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let response: Response;
-    if let Some(user_id) = id {
-        let row = sqlx::query_as!(Depend, "SELECT * FROM depend WHERE user_id = ?", user_id)
-            .fetch_all(conn)
-            .await;
-        match row {
-            Ok(result) => response = Response::new("success", ResponseData::Depend(result)),
-            Err(_err) => {
-                response = Response::new("Failed", ResponseData::String("Failed".to_string()));
-            }
+    let row = sqlx::query_as!(
+        Course,
+        "SELECT * FROM course WHERE id IN (
+            SELECT course_id FROM depend where user_id = ?
+        )",
+        user.id
+    )
+    .fetch_all(conn)
+    .await;
+    match row {
+        Ok(result) => response = Response::new("success", ResponseData::Courses(result)),
+        Err(_err) => {
+            response = Response::new("Failed", ResponseData::String("Failed".to_string()));
         }
-    } else {
-        let row = sqlx::query_as!(Depend, "SELECT * FROM depend")
-            .fetch_all(conn)
-            .await;
-        match row {
-            Ok(result) => response = Response::new("success", ResponseData::Depend(result)),
-            Err(_err) => {
-                response = Response::new("Failed", ResponseData::String("Failed".to_string()));
-            }
+    }
+    connection.detach();
+    Json(response)
+}
+#[get("/depend/query/coach")]
+pub async fn depend_query_coach_user(
+    user: User,
+    pool: &rocket::State<Pool<MySql>>,
+) -> Json<Response> {
+    let mut connection = pool.acquire().await.expect("Failed to acquire connection");
+    let conn = connection.as_mut();
+    let response: Response;
+    let row = sqlx::query_as!(
+        User,
+        "SELECT * FROM user WHERE id IN (
+            SELECT coach_id FROM course WHERE id IN (
+                SELECT course_id FROM depend where user_id = ?
+            )
+        )",
+        user.id
+    )
+    .fetch_all(conn)
+    .await;
+    match row {
+        Ok(result) => response = Response::new("success", ResponseData::Users(result)),
+        Err(_err) => {
+            response = Response::new("Failed", ResponseData::String("Failed".to_string()));
+        }
+    }
+    connection.detach();
+    Json(response)
+}
+#[get("/depend/query/user/<course_id>")]
+pub async fn depend_query_user_coach(
+    _coach: Coach,
+    pool: &rocket::State<Pool<MySql>>,
+    course_id: i32,
+) -> Json<Response> {
+    let mut connection = pool.acquire().await.expect("Failed to acquire connection");
+    let conn = connection.as_mut();
+    let response: Response;
+    let row = sqlx::query_as!(
+        User,
+        "SELECT * FROM user WHERE id IN (
+            SELECT user_id FROM depend WHERE course_id = ?
+        )",
+        course_id
+    )
+    .fetch_all(conn)
+    .await;
+    match row {
+        Ok(result) => response = Response::new("success", ResponseData::Users(result)),
+        Err(_err) => {
+            response = Response::new("Failed", ResponseData::String("Failed".to_string()));
         }
     }
     connection.detach();
