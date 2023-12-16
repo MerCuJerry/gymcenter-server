@@ -1,9 +1,6 @@
-use crate::utils::{Admin, User};
+use crate::utils::{Admin, Notice, User};
 use crate::utils::{DeleteForm, Response, ResponseData};
-use rocket::{
-    form::Form,
-    serde::{json::Json, Serialize},
-};
+use rocket::{form::Form, serde::json::Json};
 use sqlx::{MySql, Pool};
 
 // 通知
@@ -76,12 +73,6 @@ pub async fn notice_delete(
 }
 
 //查询公告
-#[derive(Serialize)]
-#[serde(crate = "rocket::serde")]
-pub struct Notice {
-    id: i32,
-    notice_content: String,
-}
 #[get("/notice/query")]
 pub async fn notice_query(_user: User, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");

@@ -51,6 +51,5 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .mount("/", _routes)
         .launch()
         .await?;
-
     Ok(())
 }

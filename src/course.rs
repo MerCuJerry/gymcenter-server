@@ -2,7 +2,6 @@ use crate::utils::{Admin, Coach, Course, DeleteForm, Response, ResponseData, Use
 use rocket::{form::Form, serde::json::Json, State};
 use sqlx::{MySql, Pool};
 
-
 //这里还要再改
 #[derive(FromForm)]
 pub struct CourseAddForm<'r> {

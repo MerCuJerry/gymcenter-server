@@ -1,6 +1,8 @@
 use crate::utils::{Admin, DeleteForm, Response, ResponseData, User};
 use rocket::{form::Form, serde::json::Json};
+use sha2::{Sha256, Digest};
 use sqlx::{MySql, Pool};
+use base64ct::{Base64, Encoding};
 
 //用户相关
 #[derive(FromForm)]
@@ -29,6 +31,12 @@ async fn user_add(
         .await;
     let resp_str: &str;
     let resp_args: &str;
+    let password_hashed = Base64::encode_string(
+        Sha256::new()
+            .chain_update(form.password)
+            .finalize()
+            .as_ref(),
+    );
     match res {
         Ok(_result) => {
             resp_str = "failed";
@@ -39,7 +47,7 @@ async fn user_add(
             let row = sqlx::query!(
                 "insert into user (phone_num, password, permission, username) value (?, ?, ?, ?)",
                 form.phone_num,
-                form.password,
+                password_hashed,
                 form.permission,
                 form.username,
             )

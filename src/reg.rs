@@ -1,10 +1,11 @@
-use crate::utils::User;
-use crate::utils::{Response, ResponseData};
+use crate::utils::{Response, ResponseData, User};
+use base64ct::{Base64, Encoding};
 use rocket::{
     form::Form,
     http::{Cookie, CookieJar},
     serde::json::Json,
 };
+use sha2::{Digest, Sha256};
 use sqlx::{MySql, Pool};
 
 #[derive(FromForm)]
@@ -20,11 +21,17 @@ pub async fn login(
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
+    let password_hashed = Base64::encode_string(
+        Sha256::new()
+            .chain_update(form.password)
+            .finalize()
+            .as_ref(),
+    );
     let row = sqlx::query_as!(
         User,
         "SELECT * FROM user WHERE phone_num = ? and password = ?",
         form.phone_num,
-        form.password
+        password_hashed
     )
     .fetch_one(conn)
     .await;
@@ -32,13 +39,20 @@ pub async fn login(
     match row {
         Ok(result) => {
             cookies.add_private(Cookie::new("user_id", result.id.to_string()));
-            cookies.add_private(Cookie::new("token", result.password.clone().to_string()));
+            cookies.add_private(Cookie::new("token", form.password.to_string()));
             response = Response::new("success", ResponseData::User(result));
         }
         Err(_err) => {
             response = Response::new(
                 "failed",
-                ResponseData::String("Wrong while login".to_string()),
+                ResponseData::User(User {
+                    id: 0,
+                    username: None,
+                    password: "0".to_string(),
+                    phone_num: "0".to_string(),
+                    permission: "user".to_string(),
+                    self_sign: None,
+                }),
             )
         }
     }
@@ -73,6 +87,12 @@ pub async fn register(
         .await;
     let resp_str: &str;
     let resp_args: &str;
+    let password_hashed = Base64::encode_string(
+        Sha256::new()
+            .chain_update(form.password)
+            .finalize()
+            .as_ref(),
+    );
     match res {
         Ok(_result) => {
             resp_str = "failed";
@@ -83,7 +103,7 @@ pub async fn register(
             let row = sqlx::query!(
                 "insert into user (phone_num, password, permission) value (?, ?, ?)",
                 form.phone_num,
-                form.password,
+                password_hashed,
                 "user"
             )
             .execute(conn)

@@ -1,4 +1,3 @@
-use crate::notice::Notice;
 use rocket::{
     http::Status,
     outcome::try_outcome,
@@ -6,7 +5,9 @@ use rocket::{
     serde::{Serialize, ser::{SerializeStruct, Serializer}},
     Request,
 };
+use base64ct::{Base64, Encoding};
 use sqlx::{MySql, Pool};
+use sha2::{Sha256, Digest};
 
 // 可能返回的数据
 #[derive(Serialize)]
@@ -87,7 +88,12 @@ impl<'r> FromRequest<'r> for User {
             request.cookies().get_private("token"),
         ) {
             let user_id = id.value_trimmed();
-            let user_password = password.value_trimmed();
+            let user_password = Base64::encode_string(
+                Sha256::new()
+                    .chain_update(password.value_trimmed())
+                    .finalize()
+                    .as_ref(),
+            );
             let mut connection = pool.acquire().await.expect("Failed to acquire connection");
             let conn = connection.as_mut();
             let res = sqlx::query_as!(
@@ -142,4 +148,12 @@ pub struct Course {
     pub course_name: String,
     pub course_describe: String,
     pub coach_id: i32,
+}
+
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct Notice {
+    pub id: i32,
+    pub notice_content: String,
 }

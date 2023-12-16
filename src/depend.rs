@@ -1,8 +1,5 @@
 use crate::utils::{Admin, Coach, Course, DeleteForm, Response, ResponseData, User};
-use rocket::{
-    form::Form,
-    serde::{json::Json, Serialize},
-};
+use rocket::{form::Form, serde::json::Json};
 use sqlx::{MySql, Pool};
 
 #[derive(FromForm)]
@@ -139,13 +136,6 @@ async fn depend_delete(
     ))
 }
 
-#[derive(Serialize)]
-#[serde(crate = "rocket::serde")]
-pub struct Depend {
-    id: i32,
-    course_id: i32,
-    user_id: i32,
-}
 // 用户查询课程学员
 #[get("/depend/query/course")]
 pub async fn depend_query_course_user(
