@@ -1,10 +1,9 @@
-use crate::utils::{Admin, DeleteForm, Response, ResponseData, User};
-use rocket::{form::Form, serde::json::Json};
+use crate::utils::{DeleteForm, Response, ResponseData, User};
+use rocket::{State, form::Form, serde::json::Json};
 use sha2::{Sha256, Digest};
 use sqlx::{MySql, Pool};
 use base64ct::{Base64, Encoding};
 
-//用户相关
 #[derive(FromForm)]
 pub struct UserAddForm<'r> {
     phone_num: &'r str,
@@ -12,16 +11,17 @@ pub struct UserAddForm<'r> {
     permission: &'r str,
     username: &'r str,
 }
-#[post("/user/add", data = "<form>")]
-pub async fn user_add_admin(
-    _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
-    form: Form<UserAddForm<'_>>,
-) -> Json<Response> {
-    user_add(pool, form).await
+
+#[derive(FromForm)]
+pub struct UserChangeForm<'r> {
+    pub id: i32,
+    username: &'r str,
+    password: &'r str,
+    pub permission: &'r str,
+    self_sign: &'r str,
 }
-async fn user_add(
-    pool: &rocket::State<Pool<MySql>>,
+pub async fn user_add(
+    pool: &State<Pool<MySql>>,
     form: Form<UserAddForm<'_>>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
@@ -72,15 +72,7 @@ async fn user_add(
     ))
 }
 
-#[post("/user/delete", data = "<form>")]
-pub async fn user_delete_admin(
-    _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
-    form: Form<DeleteForm>,
-) -> Json<Response> {
-    user_delete(pool, form).await
-}
-async fn user_delete(pool: &rocket::State<Pool<MySql>>, form: Form<DeleteForm>) -> Json<Response> {
+pub async fn user_delete(pool: &State<Pool<MySql>>, form: Form<DeleteForm>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let row = sqlx::query!("DELETE FROM user WHERE id = ?", form.id)
@@ -105,20 +97,8 @@ async fn user_delete(pool: &rocket::State<Pool<MySql>>, form: Form<DeleteForm>) 
     ))
 }
 
-// 查询用户
-#[get("/user/query")]
-pub async fn user_query_all(_admin: Admin, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
-    user_query(pool, None).await
-}
-#[get("/user/query/<id>")]
-pub async fn user_query_one(
-    _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
-    id: i32,
-) -> Json<Response> {
-    user_query(pool, Some(id)).await
-}
-async fn user_query(pool: &rocket::State<Pool<MySql>>, id: Option<i32>) -> Json<Response> {
+
+pub async fn user_query(pool: &State<Pool<MySql>>, id: Option<i32>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn: &mut sqlx::MySqlConnection = connection.as_mut();
     let response: Response;
@@ -147,37 +127,8 @@ async fn user_query(pool: &rocket::State<Pool<MySql>>, id: Option<i32>) -> Json<
     Json(response)
 }
 
-#[derive(FromForm)]
-pub struct UserChangeForm<'r> {
-    id: i32,
-    username: &'r str,
-    password: &'r str,
-    permission: &'r str,
-    self_sign: &'r str,
-}
-//管理员更改用户
-#[post("/user/change", data = "<form>")]
-pub async fn user_change_admin(
-    _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
-    form: Form<UserChangeForm<'_>>,
-) -> Json<Response> {
-    user_change(pool, form).await
-}
-//用户更改用户
-#[post("/user/change", rank = 2, data = "<form>")]
-pub async fn user_change_user(
-    user: User,
-    pool: &rocket::State<Pool<MySql>>,
-    form: Form<UserChangeForm<'_>>,
-) -> Json<Response> {
-    let mut changed_form = form;
-    changed_form.id = user.id;
-    changed_form.permission = user.permission.as_str();
-    user_change(pool, changed_form).await
-}
-async fn user_change(
-    pool: &rocket::State<Pool<MySql>>,
+pub async fn user_change(
+    pool: &State<Pool<MySql>>,
     form: Form<UserChangeForm<'_>>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
