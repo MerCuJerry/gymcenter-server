@@ -133,12 +133,18 @@ pub async fn user_change(
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
+    let password_hashed = Base64::encode_string(
+        Sha256::new()
+            .chain_update(form.password)
+            .finalize()
+            .as_ref(),
+    );
     let row = sqlx::query!(
         "UPDATE user
         SET username = ?, password = ?, permission = ?, self_sign = ?
         WHERE id = ?",
         form.username,
-        form.password,
+        password_hashed,
         form.permission,
         form.self_sign,
         form.id
