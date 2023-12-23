@@ -3,7 +3,7 @@ use rocket::{State, form::Form, serde::json::Json};
 use sqlx::{MySql, Pool};
 
 #[derive(FromForm)]
-pub struct DependAddForm {
+pub struct AddForm {
     course_id: i32,
     pub user_id: i32,
 }
@@ -12,9 +12,9 @@ pub enum QueryType {
     Coach,
     User,
 }
-pub async fn depend_add(
+pub async fn add(
     pool: &State<Pool<MySql>>,
-    form: Form<DependAddForm>,
+    form: Form<AddForm>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let check = sqlx::query!(
@@ -58,7 +58,7 @@ pub async fn depend_add(
     ))
 }
 
-pub async fn depend_delete(
+pub async fn delete(
     pool: &State<Pool<MySql>>,
     form: Form<DeleteForm>,
     user_id: Option<i32>,
@@ -102,7 +102,7 @@ pub async fn depend_delete(
     ))
 }
 
-pub async fn depend_query(
+pub async fn query(
     pool: &State<Pool<MySql>>,
     query_type: QueryType,
     id: i32

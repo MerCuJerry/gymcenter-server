@@ -4,15 +4,15 @@ use rocket::{form::Form, serde::json::Json, Route, State};
 use sqlx::{MySql, Pool};
 
 // 通知
-pub fn get_notice_routes() -> Vec<Route> {
-    routes![notice_add, notice_delete, notice_query]
+pub fn get_routes() -> Vec<Route> {
+    routes![add, delete, query]
 }
 #[derive(FromForm)]
 pub struct NoticeAddForm {
-    notice_content: String,
+    content: String,
 }
 #[post("/add", data = "<form>")]
-async fn notice_add(
+async fn add(
     _admin: Admin,
     pool: &State<Pool<MySql>>,
     form: Form<NoticeAddForm>,
@@ -21,7 +21,7 @@ async fn notice_add(
     let conn = connection.as_mut();
     let row = sqlx::query!(
         "INSERT INTO notice (notice_content) VALUE (?)",
-        form.notice_content
+        form.content
     )
     .execute(conn)
     .await;
@@ -46,7 +46,7 @@ async fn notice_add(
 
 //删除公告
 #[post("/delete", data = "<form>")]
-async fn notice_delete(
+async fn delete(
     _admin: Admin,
     pool: &State<Pool<MySql>>,
     form: Form<DeleteForm>,
@@ -77,7 +77,7 @@ async fn notice_delete(
 
 //查询公告
 #[get("/query")]
-async fn notice_query(_user: User, pool: &State<Pool<MySql>>) -> Json<Response> {
+async fn query(_user: User, pool: &State<Pool<MySql>>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let row = sqlx::query_as!(Notice, "SELECT * FROM notice")

@@ -19,10 +19,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let pool = sqlx::MySqlPool::connect(&connection_str).await?;
     let _rocket = rocket::build()
         .manage(pool)
-        .mount("/course", course::get_course_routes())
-        .mount("/depend", depend::get_depend_routes())
-        .mount("/notice", notice::get_notice_routes())
-        .mount("/user", user::get_user_routes())
+        .mount("/course", course::get_routes())
+        .mount("/depend", depend::get_routes())
+        .mount("/notice", notice::get_routes())
+        .mount("/user", user::get_routes())
         .mount("/", _routes)
         .launch()
         .await?;

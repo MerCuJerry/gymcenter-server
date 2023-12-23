@@ -5,7 +5,7 @@ use sqlx::{MySql, Pool};
 use base64ct::{Base64, Encoding};
 
 #[derive(FromForm)]
-pub struct UserAddForm<'r> {
+pub struct AddForm<'r> {
     phone_num: &'r str,
     password: &'r str,
     permission: &'r str,
@@ -13,16 +13,16 @@ pub struct UserAddForm<'r> {
 }
 
 #[derive(FromForm)]
-pub struct UserChangeForm<'r> {
+pub struct ChangeForm<'r> {
     pub id: i32,
     username: &'r str,
     password: &'r str,
     pub permission: &'r str,
     self_sign: &'r str,
 }
-pub async fn user_add(
+pub async fn add(
     pool: &State<Pool<MySql>>,
-    form: Form<UserAddForm<'_>>,
+    form: Form<AddForm<'_>>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
@@ -72,7 +72,7 @@ pub async fn user_add(
     ))
 }
 
-pub async fn user_delete(pool: &State<Pool<MySql>>, form: Form<DeleteForm>) -> Json<Response> {
+pub async fn delete(pool: &State<Pool<MySql>>, form: Form<DeleteForm>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let row = sqlx::query!("DELETE FROM user WHERE id = ?", form.id)
@@ -98,12 +98,12 @@ pub async fn user_delete(pool: &State<Pool<MySql>>, form: Form<DeleteForm>) -> J
 }
 
 
-pub async fn user_query(pool: &State<Pool<MySql>>, id: Option<i32>) -> Json<Response> {
+pub async fn query(pool: &State<Pool<MySql>>, id: Option<i32>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn: &mut sqlx::MySqlConnection = connection.as_mut();
     let response: Response;
-    if let Some(user_id) = id {
-        let row = sqlx::query_as!(User, "SELECT * FROM user WHERE id = ?", user_id)
+    if let Some(id) = id {
+        let row = sqlx::query_as!(User, "SELECT * FROM user WHERE id = ?", id)
             .fetch_one(conn)
             .await;
         match row {
@@ -127,9 +127,9 @@ pub async fn user_query(pool: &State<Pool<MySql>>, id: Option<i32>) -> Json<Resp
     Json(response)
 }
 
-pub async fn user_change(
+pub async fn change(
     pool: &State<Pool<MySql>>,
-    form: Form<UserChangeForm<'_>>,
+    form: Form<ChangeForm<'_>>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();

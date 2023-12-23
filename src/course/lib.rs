@@ -3,22 +3,22 @@ use rocket::{form::Form, serde::json::Json, State};
 use sqlx::{MySql, Pool};
 
 #[derive(FromForm)]
-pub struct CourseAddForm<'r> {
+pub struct AddForm<'r> {
     course_name: &'r str,
     course_describe: &'r str,
     pub coach_id: i32,
 }
 #[derive(FromForm)]
-pub struct CourseChangeForm<'r> {
+pub struct ChangeForm<'r> {
     id: i32,
     course_name: &'r str,
     course_describe: &'r str,
     pub coach_id: i32,
 }
 
-pub async fn course_add(
+pub async fn add(
     pool: &State<Pool<MySql>>,
-    form: Form<CourseAddForm<'_>>,
+    form: Form<AddForm<'_>>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
@@ -65,7 +65,7 @@ pub async fn course_add(
     ))
 }
 
-pub async fn course_delete(
+pub async fn delete(
     pool: &State<Pool<MySql>>,
     form: Form<DeleteForm>,
     coach_id: Option<i32>,
@@ -110,9 +110,9 @@ pub async fn course_delete(
     ))
 }
 
-pub async fn course_change(
+pub async fn change(
     pool: &State<Pool<MySql>>,
-    form: Form<CourseChangeForm<'_>>,
+    form: Form<ChangeForm<'_>>,
 ) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
@@ -146,7 +146,7 @@ pub async fn course_change(
     ))
 }
 
-pub async fn course_query(pool: &State<Pool<MySql>>, coach_id: Option<i32>) -> Json<Response> {
+pub async fn query(pool: &State<Pool<MySql>>, coach_id: Option<i32>) -> Json<Response> {
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     let conn = connection.as_mut();
     let response: Response;
