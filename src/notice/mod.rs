@@ -1,5 +1,4 @@
-use crate::utils::{Admin, Notice, User};
-use crate::utils::{DeleteForm, Response, ResponseData};
+use crate::utils::{Admin, Notice, User, DeleteForm, Response, ResponseData};
 use rocket::{form::Form, serde::json::Json, Route, State};
 use sqlx::{MySql, Pool};
 

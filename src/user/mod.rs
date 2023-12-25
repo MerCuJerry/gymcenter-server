@@ -1,5 +1,5 @@
 use crate::utils::{Admin, DeleteForm, Response, User};
-use rocket::{form::Form, serde::json::Json, Route};
+use rocket::{State, form::Form, serde::json::Json, Route};
 use sqlx::{MySql, Pool};
 mod lib;
 use lib::{add, change, delete, query, AddForm, ChangeForm};
@@ -18,7 +18,7 @@ pub fn get_routes() -> Vec<Route> {
 #[post("/add", data = "<form>")]
 async fn add_admin(
     _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
+    pool: &State<Pool<MySql>>,
     form: Form<AddForm<'_>>,
 ) -> Json<Response> {
     add(pool, form).await
@@ -27,7 +27,7 @@ async fn add_admin(
 #[post("/delete", data = "<form>")]
 async fn delete_admin(
     _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
+    pool: &State<Pool<MySql>>,
     form: Form<DeleteForm>,
 ) -> Json<Response> {
     delete(pool, form).await
@@ -35,13 +35,13 @@ async fn delete_admin(
 
 // 查询用户
 #[get("/query")]
-async fn query_all(_admin: Admin, pool: &rocket::State<Pool<MySql>>) -> Json<Response> {
+async fn query_all(_admin: Admin, pool: &State<Pool<MySql>>) -> Json<Response> {
     query(pool, None).await
 }
 #[get("/query/<id>")]
 async fn query_one(
     _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
+    pool: &State<Pool<MySql>>,
     id: i32,
 ) -> Json<Response> {
     query(pool, Some(id)).await
@@ -51,7 +51,7 @@ async fn query_one(
 #[post("/change", data = "<form>")]
 async fn change_admin(
     _admin: Admin,
-    pool: &rocket::State<Pool<MySql>>,
+    pool: &State<Pool<MySql>>,
     form: Form<ChangeForm<'_>>,
 ) -> Json<Response> {
     change(pool, form).await
@@ -60,7 +60,7 @@ async fn change_admin(
 #[post("/change", rank = 2, data = "<form>")]
 async fn change_user(
     user: User,
-    pool: &rocket::State<Pool<MySql>>,
+    pool: &State<Pool<MySql>>,
     form: Form<ChangeForm<'_>>,
 ) -> Json<Response> {
     let mut changed_form = form;
