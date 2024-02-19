@@ -26,7 +26,6 @@ jobs:
       - name: Setup Rust with target ${{ matrix.os.target }}
         uses: moonrepo/setup-rust@v1
         with:
-          channel: nightly
           cache: False
           cache-target: release
       - name: Setup Mysql
