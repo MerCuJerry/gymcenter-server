@@ -22,10 +22,10 @@ jobs:
           targets: ${{ matrix.target }}
           cache: False
           cache-target: release
-      - name: Check (${{ matrix.target }})
-        run: cargo check --release
       - name: Build Release (${{ matrix.target }})
-        run: cargo build --release
+        run: |
+          set DATABASE_URL=mysql://username:password@localhost:3306/fitness_mysql?characterEncoding=utf-8
+          cargo build --release
       - name: Upload binary files (${{ matrix.target }})
         uses: actions/upload-artifact@v4
         with:
