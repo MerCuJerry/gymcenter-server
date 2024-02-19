@@ -8,20 +8,24 @@ on:
   
 jobs:
   release:
-    name: Build release ${{ matrix.target }}
-    runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: mysql://root:${{ secrets.MYSQL_PASSWD }}@localhost:3306/fitness_mysql?characterEncoding=utf-8
     strategy:
       fail-fast: false
       matrix:
-        target: ['x86_64-pc-windows-gnu']
+        os:
+          - name: windows-latest
+            target: x86_64-windows-msvc
+          - name: ubuntu-latest
+            target: x86_64-linux-gnu
+    name: Build release ${{ matrix.os.target }}
+
+    runs-on: ${{ matrix.os.name }}
+    env:
+      DATABASE_URL: mysql://root:${{ secrets.MYSQL_PASSWD }}@localhost:3306/fitness_mysql?characterEncoding=utf-8
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Rust with target ${{ matrix.target }}
+      - name: Setup Rust with target ${{ matrix.os.target }}
         uses: moonrepo/setup-rust@v1
         with:
-          targets: ${{ matrix.target }}
           cache: False
           cache-target: release
       - name: Setup Mysql
@@ -31,18 +35,18 @@ jobs:
           root-password: ${{ secrets.MYSQL_PASSWD }}
       - name: Execute .sql file
         run: |
-          mysql -u root -p${{ secrets.MYSQL_PASSWD }} -e 'CREATE DATABASE fitness_mysql'
-          mysql -u root -p${{ secrets.MYSQL_PASSWD }} fitness_mysql < schema.sql
-      - name: Build Release (${{ matrix.target }})
-        run: cargo build --release --target=${{ matrix.target }}
+          mysql -u root -p${{ secrets.MYSQL_PASSWD }} -e 'CREATE DATABASE fitness_mysql;'
+          mysql -u root -p${{ secrets.MYSQL_PASSWD }} fitness_mysql -e 'source schema.sql'
+      - name: Build Release (${{ matrix.os.target }})
+        run: cargo build --release
       - name: Move example file to output dir
         run: |
           mv .env.example target/release/.env
           mv rocket.toml.example target/release/rocket.toml
-      - name: Upload binary files (${{ matrix.target }})
+      - name: Upload binary files (${{ matrix.os.target }})
         uses: actions/upload-artifact@v4
         with:
-          name: Gymcenter_${{ matrix.target }}
+          name: Gymcenter_${{ matrix.os.target }}
           path: |
             target/release/.env
             target/release/rocket.toml
