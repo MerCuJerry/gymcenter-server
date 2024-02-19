@@ -38,7 +38,7 @@ jobs:
           mysql -u root -p${{ secrets.MYSQL_PASSWD }} -e 'CREATE DATABASE fitness_mysql;'
           mysql -u root -p${{ secrets.MYSQL_PASSWD }} fitness_mysql -e 'source schema.sql'
       - name: Build Release (${{ matrix.os.target }})
-        run: cargo build --release --out_dir ${{ matrix.os.target }}/
+        run: cargo build --release --out-dir ${{ matrix.os.target }}/
       - name: Move example file to output dir
         run: |
           mv .env.example ${{ matrix.os.target }}/.env
