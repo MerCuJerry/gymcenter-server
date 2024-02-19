@@ -9,13 +9,13 @@ on:
 jobs:
   release:
     name: Build release ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     env:
       DATABASE_URL: mysql://root:${{ secrets.MYSQL_PASSWD }}@localhost:3306/fitness_mysql?characterEncoding=utf-8
     strategy:
       fail-fast: false
       matrix:
-        target: ['x86_64-pc-windows-gnu']
+        target: ['x86_64-pc-windows-msvc']
     steps:
       - uses: actions/checkout@v4
       - name: Setup Rust with target ${{ matrix.target }}
