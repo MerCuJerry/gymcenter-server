@@ -1,0 +1,36 @@
+# .github/workflows/release.yml
+name: Build
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+  
+jobs:
+  release:
+    name: Build release ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-pc-windows-gnu]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Rust with target ${{ matrix.target }}
+        uses: moonrepo/setup-rust@v1
+        with:
+          targets: ${{ matrix.target }}
+          cache: False
+          cache-target: release
+      - name: Check (${{ matrix.target }})
+        run: cargo check --release
+      - name: Build Release (${{ matrix.target }})
+        run: cargo build --release
+      - name: Upload binary files (${{ matrix.target }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gymcenter_${{ matrix.target }}
+          path: |
+            .env.example
+            rocket.toml.example
+            target/release/gymcenter-server*

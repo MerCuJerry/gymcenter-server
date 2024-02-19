@@ -1,0 +1,6 @@
+[default]
+address = "127.0.0.1"
+port = 8080
+keep_alive = 5
+limits = { form = "64 kB", json = "1 MiB" }
+secret_key = "" #use your own keys https://rocket.rs/v0.5/guide/configuration/#secret-key
