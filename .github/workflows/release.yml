@@ -10,6 +10,8 @@ jobs:
   release:
     name: Build release ${{ matrix.target }}
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: mysql://username:password@localhost:3306/fitness_mysql?characterEncoding=utf-8
     strategy:
       fail-fast: false
       matrix:
@@ -23,9 +25,7 @@ jobs:
           cache: False
           cache-target: release
       - name: Build Release (${{ matrix.target }})
-        run: |
-          set DATABASE_URL=mysql://username:password@localhost:3306/fitness_mysql?characterEncoding=utf-8
-          cargo build --release
+        run: cargo build --release
       - name: Upload binary files (${{ matrix.target }})
         uses: actions/upload-artifact@v4
         with:
