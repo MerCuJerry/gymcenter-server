@@ -11,7 +11,7 @@ jobs:
     name: Build release ${{ matrix.target }}
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: mysql://username:password@localhost:3306/fitness_mysql?characterEncoding=utf-8
+      DATABASE_URL: mysql://root:${{ secrets.MYSQL_PASSWD }}@localhost:3306/fitness_mysql?characterEncoding=utf-8
     strategy:
       fail-fast: false
       matrix:
@@ -24,6 +24,15 @@ jobs:
           targets: ${{ matrix.target }}
           cache: False
           cache-target: release
+      - name: Setup Mysql
+        uses: shogo82148/actions-setup-mysql@v1
+        with:
+          mysql-version: "8.0"
+          root-password: ${{ secrets.MYSQL_PASSWD }}
+      - name: Execute .sql file
+        run: |
+          mysql -u root -p${{ secrets.MYSQL_PASSWD }} -e 'CREATE DATABASE fitness_mysql'
+          mysql -u root -p${{ secrets.MYSQL_PASSWD }} fitness_mysql < schema.sql
       - name: Build Release (${{ matrix.target }})
         run: cargo build --release
       - name: Upload binary files (${{ matrix.target }})
