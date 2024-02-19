@@ -30,9 +30,7 @@ jobs:
           mysql-version: "8.0"
           root-password: ${{ secrets.MYSQL_PASSWD }}
       - name: Execute .sql file
-        run: |
-          mysql -u root -p${{ secrets.MYSQL_PASSWD }} -e 'CREATE DATABASE fitness_mysql'
-          mysql -u root -p${{ secrets.MYSQL_PASSWD }} fitness_mysql < schema.sql
+        run: mysql -u root -p${{ secrets.MYSQL_PASSWD }} -e 'CREATE DATABASE fitness_mysql;USE fitness_mysql;source schema.sql'
       - name: Build Release (${{ matrix.target }})
         run: cargo build --release --target=${{ matrix.target }}
       - name: Move example file to output dir
