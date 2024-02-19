@@ -39,16 +39,16 @@ jobs:
           mysql -u root -p${{ secrets.MYSQL_PASSWD }} -e 'CREATE DATABASE fitness_mysql;'
           mysql -u root -p${{ secrets.MYSQL_PASSWD }} fitness_mysql -e 'source schema.sql'
       - name: Build Release (${{ matrix.os.target }})
-        run: cargo build --release --out-dir ${{ matrix.os.target }}/
+        run: cargo build --release
       - name: Move example file to output dir
         run: |
-          mv .env.example ${{ matrix.os.target }}/.env
-          mv rocket.toml.example ${{ matrix.os.target }}/rocket.toml
+          mv .env.example target/release/.env
+          mv rocket.toml.example target/release/rocket.toml
       - name: Upload binary files (${{ matrix.os.target }})
         uses: actions/upload-artifact@v4
         with:
           name: Gymcenter_${{ matrix.os.target }}
           path: |
-            ${{ matrix.os.target }}/.env
-            ${{ matrix.os.target }}/rocket.toml
-            ${{ matrix.os.target }}/gymcenter-server*
+            target/release/.env
+            target/release/rocket.toml
+            target/release/gymcenter-server*
