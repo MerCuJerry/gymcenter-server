@@ -46,4 +46,4 @@ jobs:
           path: |
             target/release/.env
             target/release/rocket.toml
-            target/release/gymcenter-server*
+            target/release/gymcenter-server.exe
