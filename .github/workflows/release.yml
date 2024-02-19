@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-pc-windows-gnu]
+        target: ['x86_64-pc-windows-gnu']
     steps:
       - uses: actions/checkout@v4
       - name: Setup Rust with target ${{ matrix.target }}
