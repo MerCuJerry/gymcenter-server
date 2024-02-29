@@ -23,7 +23,7 @@ jobs:
         with:
           cache: True
           cache-target: release
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
       - name: Setup Mysql
         uses: shogo82148/actions-setup-mysql@v1
         with:
